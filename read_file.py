@@ -21,46 +21,58 @@ import re
 
 def read_file(title, directory):
     
-    os.chdir(directory)
-    
-    #Find out the file type
-    filetype = magic.from_file(title)
-    
-    if 'PDF' in filetype:
-    
-        with pdfplumber.open(title) as pdf:
+    if 'DS_Store' not in title:
+  
+        try:
+            os.chdir(directory)
             
-            page = pdf.pages[0]
-            text = page.extract_text()
-        
-            #scanned pdf
-            if text==None: #scanned pdf
-                ocrmypdf.ocr(title, 'myfile_converted.pdf', deskew=True, progress_bar=False)
-                content = textract.process('myfile_converted.pdf', method='pdfminer') #pdf
-                os.remove('myfile_converted.pdf')
+            #Find out the file type
+            filetype = magic.from_file(title)
+            
+            if 'PDF' in filetype:
+            
+                with pdfplumber.open(title) as pdf:
                     
-            #normal pdf
-            else:
-                content = textract.process(title, method='pdfminer') #pdf
+                    page = pdf.pages[0]
+                    text = page.extract_text()
                 
-    #word
-    elif 'Microsoft Word' in filetype:
+                    #scanned pdf
+                    if text==None: #scanned pdf
+                        ocrmypdf.ocr(title, 'myfile_converted.pdf', deskew=True, progress_bar=False)
+                        content = textract.process('myfile_converted.pdf', method='pdfminer') #pdf
+                        os.remove('myfile_converted.pdf')
+                            
+                    #normal pdf
+                    else:
+                        content = textract.process(title, method='pdfminer') #pdf
+                        
+            #word
+            elif 'Microsoft Word' in filetype:
+                
+                content = docx2txt.process(title)
         
-        content = docx2txt.process(title)
-
-        #convert to pdf
-        newtitle = re.sub(r'.pdf', '', title)
-        convert(title, newtitle + '.pdf')
-        os.remove(title)
+                #convert to pdf
+                newtitle = re.sub(r'.pdf', '', title)
+                convert(title, newtitle + '.pdf')
+                os.remove(title)
+                
+            elif 'HTML Document' in filetype:
         
-    elif 'HTML Document' in filetype:
-
-        newtitle = re.sub(r'htm', '', title)
-        pdfkit.from_file(title, newtitle + '.pdf')
-        content = textract.process(newtitle+'.pdf', method='pdfminer')
-        os.remove(title)
-        
+                newtitle = re.sub(r'htm', '', title)
+                pdfkit.from_file(title, newtitle + '.pdf')
+                content = textract.process(newtitle+'.pdf', method='pdfminer')
+                os.remove(title)
+                
+            else:
+                #some unknown file type
+                content=None
+            
+        except: 
+            print(title)
+            content=None
+            
     else:
+        #DS Store
         content=None
         
     
